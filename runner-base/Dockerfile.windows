@@ -29,11 +29,10 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
 # -----------------------------------------------------------------------------
 RUN choco install -y git curl make 7zip awscli
 
-# -----------------------------------------------------------------------------
-# 3. C/C++ build tools (needed by many native extensions)
-# -----------------------------------------------------------------------------
-RUN choco install -y visualstudio2022buildtools \
-      --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart"
+# Note: Visual Studio Build Tools are pre-installed on windows-2022 GitHub runners.
+# If building on a plain Windows Server image, uncomment the following:
+# RUN choco install -y visualstudio2022buildtools `
+#       --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart"
 
 # -----------------------------------------------------------------------------
 # 4. GitHub Actions runner agent

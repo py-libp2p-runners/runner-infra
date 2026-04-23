@@ -1,0 +1,56 @@
+# =============================================================================
+# runner-base/Dockerfile.windows
+#
+# Base GitHub Actions self-hosted runner image for Windows (amd64).
+# Installs the GitHub runner agent + common C build tools via Chocolatey.
+# All project-specific images (py-libp2p, go-libp2p, etc.) use this as base.
+#
+# IMPORTANT: Must be built on a Windows Docker host (not macOS/Linux).
+# Build via GitHub Actions on windows-latest, or on a Windows EC2 instance.
+#
+# Build:
+#   docker build -f runner-base/Dockerfile.windows `
+#     -t ghcr.io/py-libp2p-runners/runner-base:windows-latest .
+# =============================================================================
+
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# -----------------------------------------------------------------------------
+# 1. Install Chocolatey
+# -----------------------------------------------------------------------------
+RUN Set-ExecutionPolicy Bypass -Scope Process -Force; \
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
+    iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# -----------------------------------------------------------------------------
+# 2. Common tools
+# -----------------------------------------------------------------------------
+RUN choco install -y git curl make 7zip awscli
+
+# -----------------------------------------------------------------------------
+# 3. C/C++ build tools (needed by many native extensions)
+# -----------------------------------------------------------------------------
+RUN choco install -y visualstudio2022buildtools \
+      --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive --norestart"
+
+# -----------------------------------------------------------------------------
+# 4. GitHub Actions runner agent
+# -----------------------------------------------------------------------------
+ARG RUNNER_VERSION=2.322.0
+
+RUN Invoke-WebRequest \
+      -Uri "https://github.com/actions/runner/releases/download/v$env:RUNNER_VERSION/actions-runner-win-x64-$env:RUNNER_VERSION.zip" \
+      -OutFile 'runner.zip'; \
+    Expand-Archive -Path 'runner.zip' -DestinationPath 'C:\actions-runner'; \
+    Remove-Item 'runner.zip'
+
+# -----------------------------------------------------------------------------
+# 5. Entrypoint
+# -----------------------------------------------------------------------------
+COPY runner-base/entrypoint.ps1 C:\entrypoint.ps1
+
+WORKDIR C:\actions-runner
+
+ENTRYPOINT ["powershell", "-File", "C:\\entrypoint.ps1"]

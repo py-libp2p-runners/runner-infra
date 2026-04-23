@@ -1,0 +1,38 @@
+# =============================================================================
+# runners/js-libp2p/Dockerfile.linux
+#
+# js-libp2p CI runner — Linux
+# Extends the base runner image with Node.js-specific dependencies.
+#
+# Build:
+#   docker build --platform linux/amd64 \
+#     -f runners/js-libp2p/Dockerfile.linux \
+#     -t ghcr.io/py-libp2p-runners/runner-js-libp2p:linux-latest .
+# =============================================================================
+
+FROM ghcr.io/py-libp2p-runners/runner-base:linux-latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# -----------------------------------------------------------------------------
+# Node.js LTS (via NodeSource) + npm
+# -----------------------------------------------------------------------------
+ARG NODE_VERSION=22
+
+RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
+    apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# Common JS tools
+# -----------------------------------------------------------------------------
+RUN npm install -g \
+    yarn \
+    pnpm \
+    typescript \
+    ts-node
+
+# -----------------------------------------------------------------------------
+# Sanity checks
+# -----------------------------------------------------------------------------
+RUN node --version && npm --version && yarn --version

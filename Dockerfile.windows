@@ -1,0 +1,24 @@
+# Windows-based GitHub Actions runner for py-libp2p
+# Build: docker build --platform windows/amd64 -f Dockerfile.windows -t ghcr.io/py-libp2p-runners/runner-py-libp2p-windows:latest .
+# Push: docker push ghcr.io/py-libp2p-runners/runner-py-libp2p-windows:latest
+
+FROM myoung34/github-runner:windows-2022
+
+# Install dependencies via Chocolatey
+RUN powershell -Command \
+    choco install -y git curl make; \
+    choco install -y visualstudio2022-workload-vctools --includeOptional; \
+    choco install -y nasm
+
+# Install Python versions
+RUN powershell -Command \
+    choco install -y python311 python312 python313
+
+# Download and install uv
+RUN powershell -Command \
+    Invoke-WebRequest -Uri 'https://astral.sh/uv/install.ps1' -OutFile 'install-uv.ps1'; \
+    . .\install-uv.ps1; \
+    Remove-Item 'install-uv.ps1'
+
+# Verify installations
+RUN python --version && git --version && uv --version

@@ -1,0 +1,31 @@
+# =============================================================================
+# runners/js-libp2p/Dockerfile.windows
+#
+# js-libp2p CI runner — Windows
+# Extends the base runner image with Node.js-specific dependencies.
+#
+# IMPORTANT: Must be built on a Windows Docker host.
+#
+# Build:
+#   docker build -f runners/js-libp2p/Dockerfile.windows `
+#     -t ghcr.io/py-libp2p-runners/runner-js-libp2p:windows-latest .
+# =============================================================================
+
+FROM ghcr.io/py-libp2p-runners/runner-base:windows-latest
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# -----------------------------------------------------------------------------
+# Node.js LTS via Chocolatey
+# -----------------------------------------------------------------------------
+RUN choco install -y nodejs-lts
+
+# -----------------------------------------------------------------------------
+# Common JS tools
+# -----------------------------------------------------------------------------
+RUN npm install -g yarn pnpm typescript ts-node
+
+# -----------------------------------------------------------------------------
+# Sanity checks
+# -----------------------------------------------------------------------------
+RUN node --version; npm --version; yarn --version

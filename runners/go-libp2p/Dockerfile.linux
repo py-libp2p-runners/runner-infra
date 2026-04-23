@@ -1,0 +1,38 @@
+# =============================================================================
+# runners/go-libp2p/Dockerfile.linux
+#
+# go-libp2p CI runner — Linux
+# Extends the base runner image with Go-specific dependencies.
+#
+# Build:
+#   docker build --platform linux/amd64 \
+#     -f runners/go-libp2p/Dockerfile.linux \
+#     -t ghcr.io/py-libp2p-runners/runner-go-libp2p:linux-latest .
+# =============================================================================
+
+FROM ghcr.io/py-libp2p-runners/runner-base:linux-latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# -----------------------------------------------------------------------------
+# Go (latest stable)
+# -----------------------------------------------------------------------------
+ARG GO_VERSION=1.22.3
+
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
+    | tar -C /usr/local -xz
+
+ENV PATH="/usr/local/go/bin:$PATH"
+ENV GOPATH="/go"
+ENV PATH="$GOPATH/bin:$PATH"
+
+# -----------------------------------------------------------------------------
+# Common Go tools
+# -----------------------------------------------------------------------------
+RUN go install golang.org/x/tools/cmd/goimports@latest && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# -----------------------------------------------------------------------------
+# Sanity checks
+# -----------------------------------------------------------------------------
+RUN go version && goimports -h 2>&1 | head -1

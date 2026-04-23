@@ -1,0 +1,32 @@
+# =============================================================================
+# runners/go-libp2p/Dockerfile.windows
+#
+# go-libp2p CI runner — Windows
+# Extends the base runner image with Go-specific dependencies.
+#
+# IMPORTANT: Must be built on a Windows Docker host.
+#
+# Build:
+#   docker build -f runners/go-libp2p/Dockerfile.windows `
+#     -t ghcr.io/py-libp2p-runners/runner-go-libp2p:windows-latest .
+# =============================================================================
+
+FROM ghcr.io/py-libp2p-runners/runner-base:windows-latest
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# -----------------------------------------------------------------------------
+# Go (latest stable via Chocolatey)
+# -----------------------------------------------------------------------------
+RUN choco install -y golang
+
+# -----------------------------------------------------------------------------
+# Common Go tools
+# -----------------------------------------------------------------------------
+RUN go install golang.org/x/tools/cmd/goimports@latest; \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# -----------------------------------------------------------------------------
+# Sanity checks
+# -----------------------------------------------------------------------------
+RUN go version

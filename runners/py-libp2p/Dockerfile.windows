@@ -1,0 +1,40 @@
+# =============================================================================
+# runners/py-libp2p/Dockerfile.windows
+#
+# py-libp2p CI runner — Windows
+# Extends the base runner image with Python-specific dependencies.
+#
+# IMPORTANT: Must be built on a Windows Docker host.
+#
+# Build:
+#   docker build -f runners/py-libp2p/Dockerfile.windows `
+#     -t ghcr.io/py-libp2p-runners/runner-py-libp2p:windows-latest .
+# =============================================================================
+
+FROM ghcr.io/py-libp2p-runners/runner-base:windows-latest
+
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# -----------------------------------------------------------------------------
+# Python 3.10, 3.11, 3.12, 3.13 via Chocolatey
+# -----------------------------------------------------------------------------
+RUN choco install -y python310 --params "/InstallDir:C:\Python310"; \
+    choco install -y python311 --params "/InstallDir:C:\Python311"; \
+    choco install -y python312 --params "/InstallDir:C:\Python312"; \
+    choco install -y python313 --params "/InstallDir:C:\Python313"
+
+# Set default python to 3.12
+RUN $env:PATH = 'C:\Python312;C:\Python312\Scripts;' + $env:PATH; \
+    [Environment]::SetEnvironmentVariable('PATH', $env:PATH, 'Machine')
+
+# -----------------------------------------------------------------------------
+# uv — fast Python package manager
+# -----------------------------------------------------------------------------
+RUN Invoke-WebRequest -Uri 'https://astral.sh/uv/install.ps1' -OutFile 'install-uv.ps1'; \
+    . .\install-uv.ps1; \
+    Remove-Item 'install-uv.ps1'
+
+# -----------------------------------------------------------------------------
+# Sanity checks
+# -----------------------------------------------------------------------------
+RUN python --version; uv --version

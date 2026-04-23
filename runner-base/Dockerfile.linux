@@ -1,0 +1,68 @@
+# =============================================================================
+# runner-base/Dockerfile.linux
+#
+# Base GitHub Actions self-hosted runner image for Linux (amd64).
+# Installs the GitHub runner agent + common C build tools.
+# All project-specific images (py-libp2p, go-libp2p, etc.) use this as base.
+#
+# Build:
+#   docker build --platform linux/amd64 \
+#     -f runner-base/Dockerfile.linux \
+#     -t ghcr.io/py-libp2p-runners/runner-base:linux-latest .
+# =============================================================================
+
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# -----------------------------------------------------------------------------
+# 1. Common system packages
+# -----------------------------------------------------------------------------
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Core utilities
+    curl \
+    wget \
+    git \
+    make \
+    unzip \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    # C/C++ build tools (needed by many language extensions)
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    libffi-dev \
+    libgmp-dev \
+    # Protobuf compiler
+    protobuf-compiler \
+    # PPA management (for adding external repos)
+    software-properties-common \
+    # AWS CLI (for SSM PAT retrieval)
+    awscli \
+    # Docker CLI (so runner jobs can use docker commands)
+    docker.io \
+    && rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# 2. GitHub Actions runner agent
+# -----------------------------------------------------------------------------
+ARG RUNNER_VERSION=2.322.0
+
+RUN mkdir -p /actions-runner && cd /actions-runner \
+    && curl -fsSL \
+       "https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz" \
+       -o runner.tar.gz \
+    && tar xzf runner.tar.gz \
+    && rm runner.tar.gz \
+    && ./bin/installdependencies.sh
+
+# -----------------------------------------------------------------------------
+# 3. Entrypoint — registers runner with GitHub and starts listening
+# -----------------------------------------------------------------------------
+COPY runner-base/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+WORKDIR /actions-runner
+
+ENTRYPOINT ["/entrypoint.sh"]

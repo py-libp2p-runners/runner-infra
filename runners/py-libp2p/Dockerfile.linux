@@ -1,0 +1,42 @@
+# =============================================================================
+# runners/py-libp2p/Dockerfile.linux
+#
+# py-libp2p CI runner — Linux
+# Extends the base runner image with Python-specific dependencies.
+#
+# Build:
+#   docker build --platform linux/amd64 \
+#     -f runners/py-libp2p/Dockerfile.linux \
+#     -t ghcr.io/py-libp2p-runners/runner-py-libp2p:linux-latest .
+# =============================================================================
+
+FROM ghcr.io/py-libp2p-runners/runner-base:linux-latest
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# -----------------------------------------------------------------------------
+# Python 3.10, 3.11, 3.12, 3.13 via deadsnakes PPA
+# -----------------------------------------------------------------------------
+RUN add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 python3.10-dev python3.10-venv \
+    python3.11 python3.11-dev python3.11-venv \
+    python3.12 python3.12-dev python3.12-venv \
+    python3.13 python3.13-dev python3.13-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# -----------------------------------------------------------------------------
+# uv — fast Python package manager
+# -----------------------------------------------------------------------------
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# -----------------------------------------------------------------------------
+# Sanity checks
+# -----------------------------------------------------------------------------
+RUN python3.10 --version && \
+    python3.11 --version && \
+    python3.12 --version && \
+    python3.13 --version && \
+    uv --version && \
+    protoc --version

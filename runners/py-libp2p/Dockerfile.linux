@@ -26,10 +26,10 @@ RUN add-apt-repository ppa:deadsnakes/ppa -y && \
     && rm -rf /var/lib/apt/lists/*
 
 # -----------------------------------------------------------------------------
-# uv — fast Python package manager
+# uv — fast Python package manager (install to /usr/local/bin for all users)
 # -----------------------------------------------------------------------------
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
+RUN curl -LsSf https://astral.sh/uv/install.sh | UV_INSTALL_DIR="/usr/local/bin" sh
+ENV PATH="/usr/local/bin:$PATH"
 
 # -----------------------------------------------------------------------------
 # Sanity checks
@@ -40,3 +40,6 @@ RUN python3.10 --version && \
     python3.13 --version && \
     uv --version && \
     protoc --version
+
+# Switch to non-root runner user (GitHub runner refuses to run as root)
+USER runner

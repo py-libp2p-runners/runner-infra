@@ -1,14 +1,17 @@
 name: Build Windows Runner Images
 
+# =============================================================================
+# Phase 1: Builds and pushes the base Windows runner image.
+# Phase 2 (build-windows-py-runner.yml) builds the py-libp2p runner on top
+# of this base image — only triggered after Phase 1 succeeds.
+# =============================================================================
+
 on:
   push:
     branches: [main]
     paths:
       - 'runner-base/Dockerfile.windows'
       - 'runner-base/entrypoint.ps1'
-      - 'runners/py-libp2p/Dockerfile.windows'
-      - 'runners/go-libp2p/Dockerfile.windows'
-      - 'runners/js-libp2p/Dockerfile.windows'
       - '.github/workflows/build-windows-runners.yml'
   workflow_dispatch:  # allow manual trigger
 
@@ -17,9 +20,6 @@ env:
   ORG: py-libp2p-runners
 
 jobs:
-  # ===========================================================================
-  # Build and push the base Windows runner image first
-  # ===========================================================================
   build-base:
     name: Build runner-base:windows-latest
     runs-on: windows-2022
@@ -43,77 +43,11 @@ jobs:
       - name: Push base Windows image
         run: docker push ${{ env.REGISTRY }}/${{ env.ORG }}/runner-base:windows-latest
 
-  # ===========================================================================
-  # Build project-specific images in parallel (all depend on base)
-  # ===========================================================================
-  build-py-libp2p:
-    name: Build runner-py-libp2p:windows-latest
-    runs-on: windows-2022
-    needs: build-base
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build py-libp2p Windows image
+      - name: Verify image was pushed
         run: |
-          docker build `
-            -f runners/py-libp2p/Dockerfile.windows `
-            -t ${{ env.REGISTRY }}/${{ env.ORG }}/runner-py-libp2p:windows-latest `
-            .
-
-      - name: Push py-libp2p Windows image
-        run: docker push ${{ env.REGISTRY }}/${{ env.ORG }}/runner-py-libp2p:windows-latest
-
-  build-go-libp2p:
-    name: Build runner-go-libp2p:windows-latest
-    runs-on: windows-2022
-    needs: build-base
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build go-libp2p Windows image
-        run: |
-          docker build `
-            -f runners/go-libp2p/Dockerfile.windows `
-            -t ${{ env.REGISTRY }}/${{ env.ORG }}/runner-go-libp2p:windows-latest `
-            .
-
-      - name: Push go-libp2p Windows image
-        run: docker push ${{ env.REGISTRY }}/${{ env.ORG }}/runner-go-libp2p:windows-latest
-
-  build-js-libp2p:
-    name: Build runner-js-libp2p:windows-latest
-    runs-on: windows-2022
-    needs: build-base
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-      - name: Build js-libp2p Windows image
-        run: |
-          docker build `
-            -f runners/js-libp2p/Dockerfile.windows `
-            -t ${{ env.REGISTRY }}/${{ env.ORG }}/runner-js-libp2p:windows-latest `
-            .
-
-      - name: Push js-libp2p Windows image
-        run: docker push ${{ env.REGISTRY }}/${{ env.ORG }}/runner-js-libp2p:windows-latest
+          Write-Host "✅ Base Windows runner image pushed:"
+          Write-Host "   ${{ env.REGISTRY }}/${{ env.ORG }}/runner-base:windows-latest"
+          Write-Host ""
+          Write-Host "Next step: deploy Windows runner containers using this image,"
+          Write-Host "then trigger build-windows-py-runner.yml for the py-libp2p runner."
+        shell: pwsh

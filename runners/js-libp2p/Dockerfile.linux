@@ -36,3 +36,6 @@ RUN npm install -g \
 # Sanity checks
 # -----------------------------------------------------------------------------
 RUN node --version && npm --version && yarn --version
+
+# Switch to non-root runner user
+USER runner

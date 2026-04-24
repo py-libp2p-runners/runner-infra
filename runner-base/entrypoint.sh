@@ -25,10 +25,10 @@ set -euo pipefail
 RUNNER_NAME="${RUNNER_NAME:-$(hostname)}"
 LABELS="${LABELS:-self-hosted,linux,x64}"
 RUNNER_GROUP="${RUNNER_GROUP_NAME:-Default}"
-RUNNER_WORKDIR="${RUNNER_WORKDIR:-/runner-work}"
+RUNNER_WORKDIR="${RUNNER_WORKDIR:-/home/runner/work}"
 EPHEMERAL="${EPHEMERAL:-true}"
 
-mkdir -p "$RUNNER_WORKDIR"
+mkdir -p "$RUNNER_WORKDIR" 2>/dev/null || true
 
 echo "=== Registering runner: $RUNNER_NAME ==="
 echo "    Org:    $ORG_NAME"
@@ -41,7 +41,7 @@ REG_TOKEN=$(curl -fsSL \
   -H "Authorization: token ${ACCESS_TOKEN}" \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/orgs/${ORG_NAME}/actions/runners/registration-token" \
-  | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
 
 if [ -z "$REG_TOKEN" ]; then
   echo "ERROR: Failed to get registration token from GitHub"
@@ -75,7 +75,7 @@ cleanup() {
     -H "Authorization: token ${ACCESS_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     "https://api.github.com/orgs/${ORG_NAME}/actions/runners/remove-token" \
-    | grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+    | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])")
   /actions-runner/config.sh remove --token "$REMOVE_TOKEN" 2>/dev/null || true
 }
 trap cleanup EXIT

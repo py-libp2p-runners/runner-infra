@@ -58,11 +58,20 @@ RUN mkdir -p /actions-runner && cd /actions-runner \
     && ./bin/installdependencies.sh
 
 # -----------------------------------------------------------------------------
-# 3. Entrypoint — registers runner with GitHub and starts listening
+# 3. Create non-root runner user (GitHub runner refuses to run as root)
+# -----------------------------------------------------------------------------
+RUN useradd -m -s /bin/bash runner && \
+    chown -R runner:runner /actions-runner
+
+# -----------------------------------------------------------------------------
+# 4. Entrypoint — registers runner with GitHub and starts listening
 # -----------------------------------------------------------------------------
 COPY runner-base/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 WORKDIR /actions-runner
+
+# Switch to non-root runner user — GitHub runner refuses to run as root
+USER runner
 
 ENTRYPOINT ["/entrypoint.sh"]

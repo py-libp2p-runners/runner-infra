@@ -23,16 +23,21 @@ RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" \
     | tar -C /usr/local -xz
 
 ENV PATH="/usr/local/go/bin:$PATH"
-ENV GOPATH="/go"
-ENV PATH="$GOPATH/bin:$PATH"
+ENV GOPATH="/home/runner/go"
+ENV PATH="/home/runner/go/bin:/usr/local/go/bin:$PATH"
 
 # -----------------------------------------------------------------------------
-# Common Go tools
+# Common Go tools (install to a world-accessible path)
 # -----------------------------------------------------------------------------
-RUN go install golang.org/x/tools/cmd/goimports@latest && \
-    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+RUN mkdir -p /home/runner/go && \
+    GOPATH=/home/runner/go go install golang.org/x/tools/cmd/goimports@latest && \
+    GOPATH=/home/runner/go go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
+    chown -R runner:runner /home/runner/go
 
 # -----------------------------------------------------------------------------
 # Sanity checks
 # -----------------------------------------------------------------------------
 RUN go version && goimports -h 2>&1 | head -1
+
+# Switch to non-root runner user
+USER runner

@@ -1,0 +1,64 @@
+name: Build Linux py-libp2p Runner Image
+
+# =============================================================================
+# Phase 2 (Linux): Builds the py-libp2p runner image on top of the base.
+# Triggered manually or automatically after build-linux-runners.yml succeeds.
+#
+# Prerequisites:
+#   - runner-base:linux-latest must already exist in GHCR (Phase 1 done)
+#   - At least one base runner container must be running and registered
+# =============================================================================
+
+on:
+  workflow_run:
+    workflows: ["Build Linux Runner Images"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:  # also allow manual trigger
+
+env:
+  REGISTRY: ghcr.io
+  ORG: py-libp2p-runners
+  PLATFORM: linux/amd64
+
+jobs:
+  build-py-runner:
+    name: Build runner-py-libp2p:linux-latest
+    # Only run if Phase 1 succeeded (or if manually triggered)
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push py-libp2p Linux runner image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: runners/py-libp2p/Dockerfile.linux
+          platforms: ${{ env.PLATFORM }}
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.ORG }}/runner-py-libp2p:linux-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Summary
+        run: |
+          echo "✅ py-libp2p Linux runner image pushed:"
+          echo "   ${{ env.REGISTRY }}/${{ env.ORG }}/runner-py-libp2p:linux-latest"
+          echo ""
+          echo "Next step: update EC2 user_data to use runner-py-libp2p:linux-latest"
+          echo "and restart runner containers on the EC2 instance."

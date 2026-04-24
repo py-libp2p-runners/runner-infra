@@ -2,19 +2,21 @@
 # =============================================================================
 # build-and-push.sh
 #
-# Builds and pushes all Linux runner images to GHCR in the correct order:
-#   1. runner-base:linux-latest       (base — must be built first)
-#   2. runner-py-libp2p:linux-latest  (uses base)
-#   3. runner-go-libp2p:linux-latest  (uses base)
-#   4. runner-js-libp2p:linux-latest  (uses base)
+# Phase 1: Builds and pushes base runner images only.
+# Phase 2 (--all): Also builds language-specific runner images.
+#
+# Build order:
+#   Phase 1:  runner-base:linux-latest        (base — must be built first)
+#   Phase 2:  runner-py-libp2p:linux-latest   (uses base, --all only)
+#             runner-go-libp2p:linux-latest   (uses base, --all only)
+#             runner-js-libp2p:linux-latest   (uses base, --all only)
 #
 # Usage:
-#   ./build-and-push.sh [--push] [--base-only] [--runners-only]
+#   ./build-and-push.sh [--push] [--all]
 #
 # Options:
-#   --push          Push images to GHCR after building (default: build only)
-#   --base-only     Only build/push the base image
-#   --runners-only  Only build/push the runner images (base must already exist)
+#   --push   Push images to GHCR after building (default: build only)
+#   --all    Also build/push language-specific runner images (Phase 2)
 # =============================================================================
 
 set -euo pipefail
@@ -22,16 +24,18 @@ set -euo pipefail
 REGISTRY="ghcr.io/py-libp2p-runners"
 PLATFORM="linux/amd64"
 PUSH=false
-BASE_ONLY=false
-RUNNERS_ONLY=false
+ALL=false
 
 for arg in "$@"; do
   case $arg in
-    --push)          PUSH=true ;;
-    --base-only)     BASE_ONLY=true ;;
-    --runners-only)  RUNNERS_ONLY=true ;;
+    --push) PUSH=true ;;
+    --all)  ALL=true ;;
   esac
 done
+
+# Legacy compat — treat --base-only as default (no-op) and --runners-only as --all
+BASE_ONLY=false
+RUNNERS_ONLY=false
 
 build_image() {
   local tag="$1"
@@ -67,18 +71,16 @@ if [ "$PUSH" = "true" ]; then
 fi
 
 # =============================================================================
-# Base image
+# Phase 1 — Base image (always built)
 # =============================================================================
-if [ "$RUNNERS_ONLY" = "false" ]; then
-  build_image \
-    "${REGISTRY}/runner-base:linux-latest" \
-    "runner-base/Dockerfile.linux"
-fi
+build_image \
+  "${REGISTRY}/runner-base:linux-latest" \
+  "runner-base/Dockerfile.linux"
 
 # =============================================================================
-# Project-specific runner images
+# Phase 2 — Language-specific runner images (only with --all)
 # =============================================================================
-if [ "$BASE_ONLY" = "false" ]; then
+if [ "$ALL" = "true" ]; then
   build_image \
     "${REGISTRY}/runner-py-libp2p:linux-latest" \
     "runners/py-libp2p/Dockerfile.linux"
@@ -94,14 +96,16 @@ fi
 
 echo ""
 echo "============================================================"
-echo "  All Linux images built successfully!"
+echo "  Build complete!"
 if [ "$PUSH" = "true" ]; then
-  echo "  All images pushed to GHCR."
+  echo "  Images pushed to GHCR."
 fi
 echo ""
-echo "  Images:"
+echo "  Built images:"
 echo "    ${REGISTRY}/runner-base:linux-latest"
-echo "    ${REGISTRY}/runner-py-libp2p:linux-latest"
-echo "    ${REGISTRY}/runner-go-libp2p:linux-latest"
-echo "    ${REGISTRY}/runner-js-libp2p:linux-latest"
+if [ "$ALL" = "true" ]; then
+  echo "    ${REGISTRY}/runner-py-libp2p:linux-latest"
+  echo "    ${REGISTRY}/runner-go-libp2p:linux-latest"
+  echo "    ${REGISTRY}/runner-js-libp2p:linux-latest"
+fi
 echo "============================================================"

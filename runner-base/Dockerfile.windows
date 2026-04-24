@@ -50,6 +50,6 @@ RUN Invoke-WebRequest \
 # -----------------------------------------------------------------------------
 COPY runner-base/entrypoint.ps1 entrypoint.ps1
 
-WORKDIR C:\actions-runner
+WORKDIR C:/actions-runner
 
-ENTRYPOINT ["powershell", "-File", "C:\\actions-runner\\entrypoint.ps1"]
+ENTRYPOINT ["powershell", "-File", "C:/actions-runner/entrypoint.ps1"]

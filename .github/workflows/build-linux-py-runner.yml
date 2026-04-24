@@ -42,7 +42,8 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          # Use PAT with write:packages scope — GITHUB_TOKEN only has read on org packages
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Build and push py-libp2p Linux runner image
         uses: docker/build-push-action@v5

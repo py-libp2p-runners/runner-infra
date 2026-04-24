@@ -99,22 +99,26 @@ GITHUB_PAT=$(aws ssm get-parameter \
 for i in $(seq 1 $NEEDED); do
   # Unique name per container: hostname + timestamp + index
   RUNNER_NAME="$HOSTNAME-$(date +%s)-$i"
-  WORKDIR="/tmp/runner-$RUNNER_NAME"
+
+  # Create workdir owned by uid 1000 (ubuntu on host = runner inside container)
+  # so the runner user can write job files and accept auto-updates
+  WORKDIR="/home/ubuntu/runner-work/$RUNNER_NAME"
   mkdir -p "$WORKDIR"
+  chown -R 1000:1000 "$WORKDIR"
 
   docker run -d \
     --name "runner-$RUNNER_NAME" \
     --restart=no \
     -e RUNNER_SCOPE=org \
     -e ORG_NAME="$GITHUB_ORG" \
-    -e RUNNER_GROUP_NAME=ec2-runners \
+    -e RUNNER_GROUP_NAME=Default \
     -e ACCESS_TOKEN="$GITHUB_PAT" \
     -e RUNNER_NAME="$RUNNER_NAME" \
     -e LABELS="$LABELS" \
     -e EPHEMERAL=true \
-    -e RUNNER_WORKDIR="$WORKDIR" \
+    -e RUNNER_WORKDIR="/home/runner/work" \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -v "$WORKDIR:$WORKDIR" \
+    -v "$WORKDIR:/home/runner/work" \
     "$GHCR_IMAGE"
 
   echo "Started runner: $RUNNER_NAME"

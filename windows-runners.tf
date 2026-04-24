@@ -30,15 +30,15 @@ resource "aws_instance" "windows_runner" {
   vpc_security_group_ids = [aws_security_group.runner.id]
   key_name               = var.key_pair_name != "" ? var.key_pair_name : null
 
-  # user_data for Windows must be base64-encoded and wrapped in <powershell> tags
-  user_data = base64encode(templatefile("${path.module}/windows_user_data.ps1", {
+  # EC2 Launch v2 on Windows handles <powershell> tags natively — no base64 needed
+  user_data = templatefile("${path.module}/windows_user_data.ps1", {
     github_org           = var.github_org
     ssm_pat_path         = var.ssm_pat_path
     ghcr_image           = var.ghcr_image_windows
     runner_labels        = var.windows_runner_labels
     runners_per_instance = var.runners_per_instance
     aws_region           = var.aws_region
-  }))
+  })
 
   metadata_options {
     http_endpoint               = "enabled"
